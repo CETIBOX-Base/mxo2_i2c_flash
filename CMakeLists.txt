@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.4)
 project ("MachXO2 I2C Flash Tool" C)
 
 file(GLOB SOURCES src/*.c src/XO2_ECA/*.c)
