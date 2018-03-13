@@ -71,17 +71,12 @@ static int XO2_read(XO2Handle_t *pXO2, uint8_t reg, uint32_t args,
 static int XO2_write(XO2Handle_t *pXO2, uint8_t reg, uint32_t args,
 					 unsigned len, uint8_t *data)
 {
-	uint8_t *buf;
+	uint8_t buf[32];
 	struct i2c_rdwr_ioctl_data i2c_req;
 	struct i2c_msg i2c_msgs[1];
 	int status;
 
-	if (data == NULL && len != 0) {
-		return ERROR;
-	}
-
-	buf = malloc(len+4);
-	if (!buf) {
+	if ((data == NULL && len != 0) || len > 28) {
 		return ERROR;
 	}
 
@@ -101,8 +96,6 @@ static int XO2_write(XO2Handle_t *pXO2, uint8_t reg, uint32_t args,
 	i2c_req.nmsgs = 1;
 
 	status = ioctl(pXO2->i2cfd, I2C_RDWR, &i2c_req);
-
-	free(buf);
 
 	if (status != -1) {
 		return OK;
