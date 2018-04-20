@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
 	xo2.devType = MachXO2_640;
 
 	err = XO2ECA_apiGetHdwInfo(&xo2, &xo2Info);
-	if (err != 0) {
+	if (err != OK) {
 		fprintf(stderr, "XO2ECAcmd_readDevID failed: %s\n", strerror(err));
 		return 1;
 	}
@@ -84,7 +84,12 @@ int main(int argc, char *argv[])
 		   xo2Info.TraceID[2], xo2Info.TraceID[3], xo2Info.TraceID[4], xo2Info.TraceID[5],
 		   xo2Info.TraceID[6], xo2Info.TraceID[7]);
 
-	XO2ECA_apiProgram(&xo2, jedec, XO2ECA_ERASE_PROG_CFG |
-					  (load_after_flash?XO2ECA_PROGRAM_TRANSPARENT:XO2ECA_PROGRAM_NOLOAD));
+	err = XO2ECA_apiProgram(&xo2, jedec, XO2ECA_ERASE_PROG_CFG |
+							(load_after_flash?XO2ECA_PROGRAM_TRANSPARENT:XO2ECA_PROGRAM_NOLOAD));
+	if (err != OK) {
+		fprintf(stderr, "XO2ECAcmd_apiProgram failed: %d\n", err);
+		return 1;
+	}
+
 	return 0;
 }
