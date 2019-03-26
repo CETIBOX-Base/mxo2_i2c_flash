@@ -132,22 +132,26 @@ static int parse_field(parser_state_t *state, const char *line)
 			fprintf(stderr, "Fuse data before QF record\n");
 			return -1;
 		}
+		// Fuse data start given as bit address
 		if (state->cur_fuse_addr%8 != 0) {
 			fprintf(stderr, "Fuse data not byte aligned, NYI\n");
 			return -1;
 		}
-		if (state->cur_fuse_addr >= state->jedec->pageCnt*128) {
+		// Calculate in bytes from here on
+		state->cur_fuse_addr /= 8;
+
+		if (state->cur_fuse_addr >= state->jedec->pageCnt*16) {
 			fprintf(stderr, "Fuse data start exceeds flash pages\n");
 			return -1;
 		}
 
-		if (state->cur_fuse_addr < XO2DevList[state->jedec->devID].Cfgpages*128) {
+		if (state->cur_fuse_addr < XO2DevList[state->jedec->devID].Cfgpages*16) {
 			state->jedec->pCfgData = state->data;
 		} else {
 			state->jedec->pUFMData = state->data + XO2DevList[state->jedec->devID].Cfgpages*16;
 		}
 		state->cur_fuse_len = 0;
-		state->data_pos = state->data + (state->cur_fuse_addr/8);
+		state->data_pos = state->data + (state->cur_fuse_addr);
 		state->state = S_FUSES;
 		break;
 	case 'E': // "Architecture fuses", feature row & bits for Lattice
@@ -199,7 +203,7 @@ static int parse_fuses(parser_state_t *state, const char *line)
 			return -1;
 		}
 		if (line[128] != '\n' && line[128] != '\r') {
-			fprintf(stderr, "Fuse data line too long %.2hhx\n", line[128]);
+			fprintf(stderr, "Fuse data line too long\n");
 			return -1;
 		}
 		if (parsebin(line, 16, state->data_pos) != 0)
@@ -210,14 +214,18 @@ static int parse_fuses(parser_state_t *state, const char *line)
 
 		break;
 	case '*':
-		if (state->cur_fuse_addr < XO2DevList[state->jedec->devID].Cfgpages*128) {
-			if (state->cur_fuse_addr + state->cur_fuse_len > state->jedec->CfgDataSize) {
-				state->jedec->CfgDataSize = (state->cur_fuse_addr + state->cur_fuse_len)/8;
+		if (state->cur_fuse_addr < XO2DevList[state->jedec->devID].Cfgpages*16u) {
+			if (state->cur_fuse_addr + state->cur_fuse_len > XO2DevList[state->jedec->devID].Cfgpages*16u) {
+				state->jedec->CfgDataSize = XO2DevList[state->jedec->devID].Cfgpages*16u;
+				state->cur_fuse_len -= XO2DevList[state->jedec->devID].Cfgpages*16u - state->cur_fuse_addr;
+				state->cur_fuse_addr = XO2DevList[state->jedec->devID].Cfgpages*16u;
+			} else if (state->cur_fuse_addr + state->cur_fuse_len > state->jedec->CfgDataSize) {
+				state->jedec->CfgDataSize = (state->cur_fuse_addr + state->cur_fuse_len);
 			}
-		} else {
-			state->jedec->pUFMData = state->data_pos - state->cur_fuse_len;
-			if (state->cur_fuse_addr + state->cur_fuse_len - XO2DevList[state->jedec->devID].Cfgpages*128 > state->jedec->UFMDataSize) {
-				state->jedec->UFMDataSize = (state->cur_fuse_addr + state->cur_fuse_len)/8 - XO2DevList[state->jedec->devID].Cfgpages*16;
+		}
+		if (state->cur_fuse_addr >= XO2DevList[state->jedec->devID].Cfgpages*16u) {
+			if (state->cur_fuse_addr + state->cur_fuse_len - XO2DevList[state->jedec->devID].Cfgpages*16 > state->jedec->UFMDataSize) {
+				state->jedec->UFMDataSize = (state->cur_fuse_addr + state->cur_fuse_len) - XO2DevList[state->jedec->devID].Cfgpages*16;
 			}
 		}
 		state->state = S_START;

@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <linux/i2c-dev.h>
 
 #include "XO2_ECA/XO2_api.h"
@@ -18,8 +19,9 @@
 
 void usage(const char *arg0)
 {
-	fprintf(stderr, "Usage: %s [-l] <i2c-bus> <i2c-addr> <bitstream.jed>\n", arg0);
+	fprintf(stderr, "Usage: %s [-l] [-u] <i2c-bus> <i2c-addr> <bitstream.jed>\n", arg0);
 	fprintf(stderr, "\t-l\tLoad new bitstream after flashing\n");
+	fprintf(stderr, "\t-u\tFlash UFM sector\n");
 }
 
 int main(int argc, char *argv[])
@@ -27,20 +29,29 @@ int main(int argc, char *argv[])
 	XO2Handle_t xo2;
 	XO2RegInfo_t xo2Info;
 	int err;
-	bool load_after_flash = false;
-	int argpos = 0;
+	bool load_after_flash = false, flash_ufm = false;
+	int opt;
 
-	if (argc < 4) {
+	while ((opt = getopt(argc, argv, "lu")) != -1) {
+		switch (opt) {
+		case 'l':
+			load_after_flash = true;
+			break;
+		case 'u':
+			flash_ufm = true;
+			break;
+		default:
+			usage(argv[0]);
+			return 1;
+		}
+	}
+
+	if (argc - optind < 3) {
 		usage(argv[0]);
 		return 1;
 	}
 
-	if (strcmp(argv[1], "-l") == 0) {
-		load_after_flash = true;
-		argpos = 1;
-	}
-
-	XO2_JEDEC_t *jedec = jedec_parse(fopen(argv[argpos+3], "r"));
+	XO2_JEDEC_t *jedec = jedec_parse(fopen(argv[optind+2], "r"));
 	if (!jedec) {
 		fprintf(stderr, "jedec_parse failed\n");
 		return 1;
@@ -49,7 +60,7 @@ int main(int argc, char *argv[])
 	XO2ECA_apiJEDECinfo(NULL, jedec);
 
 	char *tmp, tmparr[32];
-	long i2cbus = strtol(argv[argpos+1], &tmp, 0);
+	long i2cbus = strtol(argv[optind], &tmp, 0);
 	if (*tmp != '\0' || i2cbus < 0) {
 		fprintf(stderr, "Invalid i2c bus\n");
 		usage(argv[0]);
@@ -63,7 +74,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	xo2.addr = strtol(argv[argpos+2], &tmp, 0);
+	xo2.addr = strtol(argv[optind+1], &tmp, 0);
 	if (*tmp != '\0' || xo2.addr < 0) {
 		fprintf(stderr, "Invalid i2c addr\n");
 		usage(argv[0]);
@@ -85,6 +96,7 @@ int main(int argc, char *argv[])
 		   xo2Info.TraceID[6], xo2Info.TraceID[7]);
 
 	err = XO2ECA_apiProgram(&xo2, jedec, XO2ECA_ERASE_PROG_CFG |
+							(flash_ufm?XO2ECA_ERASE_PROG_UFM:0) |
 							(load_after_flash?XO2ECA_PROGRAM_TRANSPARENT:XO2ECA_PROGRAM_NOLOAD));
 	if (err != OK) {
 		fprintf(stderr, "XO2ECAcmd_apiProgram failed: %d\n", err);
