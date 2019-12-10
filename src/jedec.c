@@ -216,9 +216,11 @@ static int parse_fuses(parser_state_t *state, const char *line)
 	case '*':
 		if (state->cur_fuse_addr < XO2DevList[state->jedec->devID].Cfgpages*16u) {
 			if (state->cur_fuse_addr + state->cur_fuse_len > XO2DevList[state->jedec->devID].Cfgpages*16u) {
+				// fuse section spans Cfg / UFM boundary
 				state->jedec->CfgDataSize = XO2DevList[state->jedec->devID].Cfgpages*16u;
 				state->cur_fuse_len -= XO2DevList[state->jedec->devID].Cfgpages*16u - state->cur_fuse_addr;
 				state->cur_fuse_addr = XO2DevList[state->jedec->devID].Cfgpages*16u;
+				state->jedec->pUFMData = state->data + XO2DevList[state->jedec->devID].Cfgpages*16;
 			} else if (state->cur_fuse_addr + state->cur_fuse_len > state->jedec->CfgDataSize) {
 				state->jedec->CfgDataSize = (state->cur_fuse_addr + state->cur_fuse_len);
 			}
