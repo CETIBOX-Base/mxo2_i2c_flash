@@ -66,6 +66,8 @@ static int parse_field(parser_state_t *state, const char *line)
 				state->jedec->devID = MachXO2_1200;
 			} else if (strstr(line, "LCMXO2-640") != NULL) {
 				state->jedec->devID = MachXO2_640;
+			} else if (strstr(line, "LCMXO2-2000") != NULL) {
+				state->jedec->devID = MachXO2_2000;
 			} else {
 				fprintf(stderr, "Unsupported device\n");
 				return -1;
