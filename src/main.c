@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
 	}
 
 	snprintf(tmparr, sizeof(tmparr), "/dev/i2c-%ld", i2cbus);
-	xo2.i2cfd = open("/dev/i2c-1", O_RDWR);
+	xo2.i2cfd = open(tmparr, O_RDWR);
 	if (xo2.i2cfd < 0) {
 		fprintf(stderr, "open %s failed: %s\n", tmparr, strerror(errno));
 		return 1;
