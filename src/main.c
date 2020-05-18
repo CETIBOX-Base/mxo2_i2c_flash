@@ -19,9 +19,10 @@
 
 void usage(const char *arg0)
 {
-	fprintf(stderr, "Usage: %s [-l] [-u] <i2c-bus> <i2c-addr> <bitstream.jed>\n", arg0);
+	fprintf(stderr, "Usage: %s [-l] [-u] [-f] <i2c-bus> <i2c-addr> <bitstream.jed>\n", arg0);
 	fprintf(stderr, "\t-l\tLoad new bitstream after flashing\n");
 	fprintf(stderr, "\t-u\tFlash UFM sector\n");
+	fprintf(stderr, "\t-f\tForce programming\n");
 }
 
 int main(int argc, char *argv[])
@@ -29,16 +30,19 @@ int main(int argc, char *argv[])
 	XO2Handle_t xo2;
 	XO2RegInfo_t xo2Info;
 	int err;
-	bool load_after_flash = false, flash_ufm = false;
+	bool load_after_flash = false, flash_ufm = false, force = false;
 	int opt;
 
-	while ((opt = getopt(argc, argv, "lu")) != -1) {
+	while ((opt = getopt(argc, argv, "luf")) != -1) {
 		switch (opt) {
 		case 'l':
 			load_after_flash = true;
 			break;
 		case 'u':
 			flash_ufm = true;
+			break;
+		case 'f':
+			force = true;
 			break;
 		default:
 			usage(argv[0]);
@@ -84,16 +88,36 @@ int main(int argc, char *argv[])
 	xo2.cfgEn = false;
 	xo2.devType = MachXO2_640;
 
-	err = XO2ECA_apiGetHdwInfo(&xo2, &xo2Info);
-	if (err != OK) {
-		fprintf(stderr, "XO2ECAcmd_readDevID failed: %s\n", strerror(err));
-		return 1;
-	}
+	bool deviceIdOk = false;
+	int attempt;
+	for(attempt = 0;attempt < 2 && !deviceIdOk;++attempt) {
+		err = XO2ECA_apiGetHdwInfo(&xo2, &xo2Info);
+		if (err != OK) {
+			fprintf(stderr, "XO2ECAcmd_readDevID failed: %s\n", strerror(err));
+			continue;
+		}
 
-	printf("Device ID: %.8x UserCode: %.8x TraceID: %.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x\n",
-		   xo2Info.devID, xo2Info.UserCode, xo2Info.TraceID[0], xo2Info.TraceID[1],
-		   xo2Info.TraceID[2], xo2Info.TraceID[3], xo2Info.TraceID[4], xo2Info.TraceID[5],
-		   xo2Info.TraceID[6], xo2Info.TraceID[7]);
+		printf("Device ID: %.8x UserCode: %.8x TraceID: %.2x%.2x%.2x%.2x%.2x%.2x%.2x%.2x\n",
+			   xo2Info.devID, xo2Info.UserCode, xo2Info.TraceID[0], xo2Info.TraceID[1],
+			   xo2Info.TraceID[2], xo2Info.TraceID[3], xo2Info.TraceID[4], xo2Info.TraceID[5],
+			   xo2Info.TraceID[6], xo2Info.TraceID[7]);
+		if (xo2Info.devID != XO2DevList[jedec->devID].DeviceIdHEZE &&
+			xo2Info.devID != XO2DevList[jedec->devID].DeviceIdHC) {
+			fprintf(stderr, "Device ID does not match device type of bitstream\n");
+			continue;
+		}
+
+		deviceIdOk = true;
+	}
+	if (!deviceIdOk) {
+		fprintf(stderr, "No matching device ID read after %d attempts", attempt);
+		if (!force) {
+			fprintf(stderr, ", exiting\n");
+			return 1;
+		} else {
+			fprintf(stderr, ", continuing anyway\n");
+		}
+	}
 
 	err = XO2ECA_apiProgram(&xo2, jedec, XO2ECA_ERASE_PROG_CFG |
 							(flash_ufm?XO2ECA_ERASE_PROG_UFM:0) |

@@ -90,9 +90,11 @@ typedef struct
 	const char *pName;      /**< String for printing the XO2 devic epart number. */
 	int        Cfgpages;    /**<  Number of Configuration pages in an XO2 device. */
 	int        UFMpages;    /**<  Number of UFM pages in an XO2 device. */
-	int	       CfgErase;    /**< How long to wait (msec) for Configuration sector to erase. */
-	int	       UFMErase;    /**< How long to wait (msec) for UFM sector to erase. */
-	int	       Trefresh;    /**< Used for pausing after FlashCheck command or Refresh command. */
+	int        CfgErase;    /**< How long to wait (msec) for Configuration sector to erase. */
+	int        UFMErase;    /**< How long to wait (msec) for UFM sector to erase. */
+	int        Trefresh;    /**< Used for pausing after FlashCheck command or Refresh command. */
+	uint32_t   DeviceIdHEZE; /**< Device ID Code for HE/ZE devices. */
+	uint32_t   DeviceIdHC; /**< Device ID Code for HC devices. */
 } XO2DevInfo_t;
 
 
