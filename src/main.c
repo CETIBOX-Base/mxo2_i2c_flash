@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2018 CETiTEC GmbH
+ *  Copyright (c) 2018-2020 CETITEC GmbH
  *
  * All rights reserved. All use of this software and documentation is
  * subject to the License Agreement located in the file LICENSE.
